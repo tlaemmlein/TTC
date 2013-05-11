@@ -9,10 +9,12 @@ import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.text.Html;
 
-public class MainActivity extends SherlockActivity {
+public class MainActivity extends SherlockActivity implements INumberReceiver {
 	
 	private boolean m_bBluetoothConnectionStateIcon;
-
+	
+    private CounterView m_CounterView1;
+	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -20,7 +22,12 @@ public class MainActivity extends SherlockActivity {
 		
 		getSupportActionBar().setBackgroundDrawable(new ColorDrawable(Color.parseColor("#262626")));
 		getSupportActionBar().setTitle(Html.fromHtml("<font color='#ffffff'>TTC</font>"));
-	
+		
+		m_CounterView1 = (CounterView) findViewById(R.id.counterView1);
+        
+		m_CounterView1.SetNumberReceiver(this);
+		
+		m_CounterView1.SetNumber(0);
 	}
 	
     @Override
@@ -51,6 +58,12 @@ public class MainActivity extends SherlockActivity {
             default:
                 return super.onOptionsItemSelected(item);
         }
-    }    
+    }
+
+	@Override
+	public void SetNumber(int newNumber) {
+		// TODO Auto-generated method stub
+		
+	}    
 
 }

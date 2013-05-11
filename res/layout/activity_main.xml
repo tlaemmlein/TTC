@@ -8,5 +8,13 @@
     android:paddingTop="@dimen/activity_vertical_margin"
     android:background="@color/opaque_black"
     tools:context=".MainActivity" >
+    
+    <de.thomaslaemmlein.ttc.CounterView
+        android:id="@+id/counterView1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentTop="true" >
+    </de.thomaslaemmlein.ttc.CounterView>    
 
 </RelativeLayout>
