@@ -18,7 +18,9 @@ public class CounterView extends LinearLayout {
 	
 	private int m_CurrentNumber;
 	
-	private int m_MaximalNumber = 99;
+	private int m_MaximalNumber = 9;
+	
+	private int m_IntegerDigitsNumber = 1;
 	
 	private INumberReceiver m_NumberReceiver;
 
@@ -37,11 +39,23 @@ public class CounterView extends LinearLayout {
 		m_NumberReceiver = nr;
 	}
 	
+	public void setTextSize(float size)
+	{
+		m_CounterTextView.setTextSize(size);
+	}
+	
+	public void setIntegerDigitsNumber(int value)
+	{
+		m_IntegerDigitsNumber = value;
+		
+		m_MaximalNumber = (int) Math.pow(10.0d, (double) m_IntegerDigitsNumber) - 1;
+	}
+	
 	private void setText(int number)
 	{
     	NumberFormat nf = NumberFormat.getNumberInstance();
-    	nf.setMinimumIntegerDigits(2);
-    	nf.setMaximumIntegerDigits(2);
+    	nf.setMinimumIntegerDigits(m_IntegerDigitsNumber);
+    	nf.setMaximumIntegerDigits(m_IntegerDigitsNumber);
     	m_CounterTextView.setText( nf.format( number ) );
 	}
 	

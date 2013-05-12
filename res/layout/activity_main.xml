@@ -10,11 +10,42 @@
     tools:context=".MainActivity" >
     
     <de.thomaslaemmlein.ttc.CounterView
-        android:id="@+id/counterView1"
+        android:id="@+id/scorePlayerLeft"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentLeft="true"
-        android:layout_alignParentTop="true" >
-    </de.thomaslaemmlein.ttc.CounterView>    
+        android:layout_alignParentTop="true"
+        android:textAlignment="center" >
+    </de.thomaslaemmlein.ttc.CounterView>
+
+    <de.thomaslaemmlein.ttc.CounterView
+        android:id="@+id/setPointsPlayerLeft"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignTop="@+id/scorePlayerLeft"
+        android:layout_toRightOf="@+id/scorePlayerLeft"
+        android:paddingLeft="10dp"
+        android:textAlignment="center" >
+    </de.thomaslaemmlein.ttc.CounterView>
+
+    <de.thomaslaemmlein.ttc.CounterView
+        android:id="@+id/setPointsPlayerRight"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignTop="@+id/scorePlayerRight"
+        android:layout_toLeftOf="@+id/scorePlayerRight"
+        android:paddingRight="10dp"
+        android:textAlignment="center" >
+
+    </de.thomaslaemmlein.ttc.CounterView>
+
+    <de.thomaslaemmlein.ttc.CounterView
+        android:id="@+id/scorePlayerRight"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentTop="true"
+        android:textAlignment="center" >
+    </de.thomaslaemmlein.ttc.CounterView>
 
 </RelativeLayout>
