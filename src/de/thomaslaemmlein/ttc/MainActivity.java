@@ -15,6 +15,10 @@ public class MainActivity extends SherlockActivity implements INumberReceiver {
 	
 	private boolean m_bBluetoothConnectionStateIcon;
 	
+	private enum ScoreView { RefereeView, PlayerView }
+	
+	private ScoreView m_ScoreView;
+	
     private CounterView m_ScorePlayerLeft;
     private CounterView m_SetPointsPlayerLeft;
     private CounterView m_SetPointsPlayerRight;
@@ -64,6 +68,8 @@ public class MainActivity extends SherlockActivity implements INumberReceiver {
  	   	inflater.inflate(R.menu.main, (com.actionbarsherlock.view.Menu) menu);    	
  	
  	   	m_bBluetoothConnectionStateIcon = false;
+ 	   	
+ 	    m_ScoreView = ScoreView.RefereeView;
 
  	   	return super.onCreateOptionsMenu(menu);
 	}
@@ -83,6 +89,20 @@ public class MainActivity extends SherlockActivity implements INumberReceiver {
             		m_bBluetoothConnectionStateIcon = true;
             	}
             	return true;
+            	
+            case R.id.score_view:
+            	if ( m_ScoreView == ScoreView.RefereeView )
+            	{
+            		item.setIcon(R.drawable.player_view);
+            		item.setTitle(R.string.player_view);
+            		m_ScoreView = ScoreView.PlayerView;
+            	}
+            	else
+            	{
+            		item.setIcon(R.drawable.referee_view);
+            		item.setTitle(R.string.referee_view);
+            		m_ScoreView = ScoreView.RefereeView;
+            	}
             default:
                 return super.onOptionsItemSelected(item);
         }

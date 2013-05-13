@@ -5,4 +5,9 @@
           android:icon="@drawable/bluetooth_not_connected"
           android:showAsAction="always" />
 
+    <item android:id="@+id/score_view"
+          android:title="@string/referee_view"
+          android:icon="@drawable/referee_view"
+          android:showAsAction="always" />
+
 </menu>
