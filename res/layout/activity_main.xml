@@ -48,4 +48,22 @@
         android:textAlignment="center" >
     </de.thomaslaemmlein.ttc.CounterView>
 
+    <TextView
+        android:id="@+id/LeftPlayer_textView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/scorePlayerLeft"
+        android:layout_below="@+id/scorePlayerLeft"
+        android:text="@string/playerA"
+        android:textColor="@color/opaque_white" />
+
+    <TextView
+        android:id="@+id/RightPlayer_textView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignRight="@+id/scorePlayerRight"
+        android:layout_below="@+id/scorePlayerRight"
+        android:text="@string/playerB"
+        android:textColor="@color/opaque_white" />
+
 </RelativeLayout>

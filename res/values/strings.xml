@@ -6,6 +6,8 @@
     <string name="connection">Connection</string>
     <string name="referee_view">Referee View</string>
     <string name="player_view">Player View</string>
+    <string name="playerA">Player A</string>
+    <string name="playerB">Player B</string>
     
 
 </resources>

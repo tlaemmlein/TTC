@@ -10,6 +10,7 @@ import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.text.Html;
 import android.view.Display;
+import android.widget.TextView;
 
 public class MainActivity extends SherlockActivity implements INumberReceiver {
 	
@@ -21,8 +22,10 @@ public class MainActivity extends SherlockActivity implements INumberReceiver {
 	
     private CounterView m_ScorePlayerLeft;
     private CounterView m_SetPointsPlayerLeft;
+    private TextView m_LeftPlayerTextView;
     private CounterView m_SetPointsPlayerRight;
     private CounterView m_ScorePlayerRight;
+    private TextView m_RightPlayerTextView;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -34,10 +37,12 @@ public class MainActivity extends SherlockActivity implements INumberReceiver {
 		
 		float textSizeScoreScalefactor = 1.0f/4.65f; //Text size 200sp Looks good for 800 pixel width. Hence -> 200/800 = 1/4
 		float textSizeSetPointsScalefactor = textSizeScoreScalefactor/2.0f;
+		float textSizePlayerNameScalefactor = textSizeScoreScalefactor/10.5f;
 		Display display = getWindowManager().getDefaultDisplay(); 
 		int width = display.getWidth();  // deprecated
 		float textSizeScoreView = width * textSizeScoreScalefactor;
 		float textSizeSetPointsView = width * textSizeSetPointsScalefactor;
+		float textSizePlayerName = width * textSizePlayerNameScalefactor;
 
 		m_ScorePlayerLeft = (CounterView) findViewById(R.id.scorePlayerLeft);
 		m_ScorePlayerLeft.SetNumberReceiver(this);
@@ -49,6 +54,10 @@ public class MainActivity extends SherlockActivity implements INumberReceiver {
 		m_SetPointsPlayerLeft.SetNumberReceiver(this);
 		m_SetPointsPlayerLeft.SetNumber(0);
 		m_SetPointsPlayerLeft.setTextSize(textSizeSetPointsView);
+		
+		m_LeftPlayerTextView = (TextView) findViewById(R.id.LeftPlayer_textView);
+		m_LeftPlayerTextView.setText(R.string.playerA);
+		m_LeftPlayerTextView.setTextSize(textSizePlayerName);
 
 		m_SetPointsPlayerRight = (CounterView) findViewById(R.id.setPointsPlayerRight);
 		m_SetPointsPlayerRight.SetNumberReceiver(this);
@@ -60,6 +69,10 @@ public class MainActivity extends SherlockActivity implements INumberReceiver {
 		m_ScorePlayerRight.setIntegerDigitsNumber(2);
 		m_ScorePlayerRight.SetNumber(0);
 		m_ScorePlayerRight.setTextSize(textSizeScoreView);
+		
+		m_RightPlayerTextView = (TextView) findViewById(R.id.RightPlayer_textView);
+		m_RightPlayerTextView.setText(R.string.playerB);
+		m_RightPlayerTextView.setTextSize(textSizePlayerName);
 	}
 	
     @Override
@@ -96,12 +109,16 @@ public class MainActivity extends SherlockActivity implements INumberReceiver {
             		item.setIcon(R.drawable.player_view);
             		item.setTitle(R.string.player_view);
             		m_ScoreView = ScoreView.PlayerView;
+            		m_LeftPlayerTextView.setText(R.string.playerB);
+            		m_RightPlayerTextView.setText(R.string.playerA);
             	}
             	else
             	{
             		item.setIcon(R.drawable.referee_view);
             		item.setTitle(R.string.referee_view);
             		m_ScoreView = ScoreView.RefereeView;
+            		m_LeftPlayerTextView.setText(R.string.playerA);
+            		m_RightPlayerTextView.setText(R.string.playerB);
             	}
             default:
                 return super.onOptionsItemSelected(item);
