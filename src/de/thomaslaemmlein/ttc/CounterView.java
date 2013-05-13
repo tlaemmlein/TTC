@@ -87,6 +87,11 @@ public class CounterView extends LinearLayout {
 	    	setText(m_CurrentNumber);
 		}
 	}
+	
+	public int getNumber()
+	{
+		return m_CurrentNumber;
+	}
 		
 	@Override
 	 public boolean onTouchEvent(MotionEvent event) {

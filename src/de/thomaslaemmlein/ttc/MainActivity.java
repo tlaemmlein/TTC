@@ -120,6 +120,16 @@ public class MainActivity extends SherlockActivity implements INumberReceiver {
             		m_LeftPlayerTextView.setText(R.string.playerA);
             		m_RightPlayerTextView.setText(R.string.playerB);
             	}
+            	int temp = m_ScorePlayerLeft.getNumber();
+            	m_ScorePlayerLeft.SetNumber(m_ScorePlayerRight.getNumber());
+            	m_ScorePlayerRight.SetNumber(temp);
+            	
+            	temp = m_SetPointsPlayerLeft.getNumber();
+            	m_SetPointsPlayerLeft.SetNumber(m_SetPointsPlayerRight.getNumber());
+            	m_SetPointsPlayerRight.SetNumber(temp);
+            	
+            	return true;
+            	
             default:
                 return super.onOptionsItemSelected(item);
         }
