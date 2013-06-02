@@ -23,6 +23,8 @@ public class CounterView extends LinearLayout {
 	private int m_IntegerDigitsNumber = 1;
 	
 	private INumberReceiver m_NumberReceiver;
+	
+	private int m_ID;
 
 	public CounterView(Context context) {
 		super(context);
@@ -37,6 +39,11 @@ public class CounterView extends LinearLayout {
 	
 	public void SetNumberReceiver(INumberReceiver nr){
 		m_NumberReceiver = nr;
+	}
+	
+	public void setID(int id)
+	{
+		m_ID = id;
 	}
 	
 	public void setTextSize(float size)
@@ -62,6 +69,8 @@ public class CounterView extends LinearLayout {
 	private void init()
 	{
 		Log.d("CounterView", "init");
+		
+		m_ID = -1;
 		
 		LayoutInflater inflater = LayoutInflater.from(getContext());
 		View root = inflater.inflate(R.layout.counter_view, this, false);
@@ -110,7 +119,6 @@ public class CounterView extends LinearLayout {
 	   String swipe = "";
 	   float sensitvity = 50;
 	   
-	   // TODO Auto-generated method stub
 	   if((e1.getX() - e2.getX()) > sensitvity){
 	    swipe += "Swipe Left;";
 	   }else if((e2.getX() - e1.getX()) > sensitvity){
@@ -127,7 +135,7 @@ public class CounterView extends LinearLayout {
 	    	setText(m_CurrentNumber);
 		    if ( m_NumberReceiver != null )
 		    {
-		    	m_NumberReceiver.SetNumber(m_CurrentNumber);
+		    	m_NumberReceiver.SetNumber(m_CurrentNumber, m_ID);
 		    }
 	    }
 	   }else if((e2.getY() - e1.getY()) > sensitvity){
@@ -137,7 +145,7 @@ public class CounterView extends LinearLayout {
 			   setText(m_CurrentNumber);
     		   if ( m_NumberReceiver != null )
 			   {
-    			   m_NumberReceiver.SetNumber(m_CurrentNumber);
+    			   m_NumberReceiver.SetNumber(m_CurrentNumber, m_ID);
 			   }
 		   }
 	    swipe += "Swipe Down;";

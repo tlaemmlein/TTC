@@ -2,6 +2,7 @@ package de.thomaslaemmlein.ttc;
 
 public interface INumberReceiver {
 	
-	void SetNumber(int newNumber);
+	// Set the new number from the sender with given ID.
+	void SetNumber(int newNumber, int id);
 
 }
