@@ -6,9 +6,11 @@ import com.actionbarsherlock.view.MenuItem;
 
 import de.thomaslaemmlein.ttc.bluetooth.BluetoothManager;
 import de.thomaslaemmlein.ttc.bluetooth.BluetoothService;
+import de.thomaslaemmlein.ttc.bluetooth.DeviceListActivity;
 
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
@@ -124,25 +126,22 @@ public class MainActivity extends SherlockActivity implements INumberReceiver {
 	protected void onStart() {
 		super.onStart();
 		if(D) Log.e(TAG, "- ON START -");
-		if ( m_bBluetoothConnectionStateIcon == true )
-		{
-	        // If BT is not on, request that it be enabled.
-	        // onActivityResult will be called
-	        if (!m_BluetoothManager.isBluetoothEnabled()) 
-	        {
-	            Intent enableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-	            startActivityForResult(enableIntent, REQUEST_ENABLE_BT);
-	        
-	        }
-	        // Otherwise, setup the table tennis session
-	        else
-	        {
-	            if (m_BluetoothService == null) 
-	            {
-	            		setupService();
-	            }
-	        }
-		}
+        // If BT is not on, request that it be enabled.
+        // onActivityResult will be called
+        if (!m_BluetoothManager.isBluetoothEnabled()) 
+        {
+            Intent enableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            startActivityForResult(enableIntent, REQUEST_ENABLE_BT);
+        
+        }
+        // Otherwise, setup the table tennis session
+        else
+        {
+            if (m_BluetoothService == null) 
+            {
+            		setupService();
+            }
+        }
 	}
 	
     @Override
@@ -165,8 +164,10 @@ public class MainActivity extends SherlockActivity implements INumberReceiver {
 	
 	private void setupService()
 	{
+		if(D) Log.d(TAG, "- setupService -");
         // Initialize the BluetoothService to perform bluetooth connections
 		m_BluetoothService = new BluetoothService(this, mHandler);
+		m_BluetoothService.start();
 	}
 	
     @Override
@@ -188,6 +189,35 @@ public class MainActivity extends SherlockActivity implements INumberReceiver {
         if (m_BluetoothService != null) m_BluetoothService.stop();
         if(D) Log.e(TAG, "--- ON DESTROY ---");
     }	
+    
+    private void ensureDiscoverable() {
+        if (m_BluetoothManager.getScanMode() !=
+            BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE) {
+            Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
+            discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300);
+            startActivity(discoverableIntent);
+        }
+    }
+    
+    /**
+     * Sends a message.
+     * @param message  A string of text to send.
+     */
+    private void sendMessage(String message) {
+        // Check that we're actually connected before trying anything
+        if (m_BluetoothService.getState() != BluetoothService.STATE_CONNECTED) {
+            Toast.makeText(this, R.string.not_connected, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Check that there's actually something to send
+        if (message.length() > 0) {
+            // Get the message bytes and tell the BluetoothChatService to write
+            byte[] send = message.getBytes();
+            m_BluetoothService.write(send);
+        }
+    }   
+    
 	
     // The Handler that gets information back from the BluetoothService
     private final Handler mHandler = new Handler() {
@@ -208,6 +238,8 @@ public class MainActivity extends SherlockActivity implements INumberReceiver {
                 	m_ConnectionText.setText(R.string.title_connecting);
                     break;
                 case BluetoothService.STATE_LISTEN:
+                	m_ConnectionText.setText(R.string.title_listen);
+                    break;
                 case BluetoothService.STATE_NONE:
                 	m_ConnectionText.setText(R.string.title_not_connected);
                     break;
@@ -250,9 +282,7 @@ public class MainActivity extends SherlockActivity implements INumberReceiver {
     	com.actionbarsherlock.view.MenuInflater inflater = getSupportMenuInflater();
  	   	inflater.inflate(R.menu.main, (com.actionbarsherlock.view.Menu) menu);   
  	   	
- 	   //menu.getItem(R.id.secure_connect_scan).setVisible(false);
- 	   	
- 	   m_OptionMenu = menu;
+ 	   	m_OptionMenu = menu;
  	
  	   	m_bBluetoothConnectionStateIcon = false;
  	   	
@@ -266,6 +296,11 @@ public class MainActivity extends SherlockActivity implements INumberReceiver {
     	if ( IsConnected)
     	{
     		m_BluetoothMenuItem.setIcon(R.drawable.bluetooth_connected);
+    		
+            if ( null == m_BluetoothService )
+            {
+            	setupService();
+            }    		
     		
     		if(D) Log.d(TAG, "- setBluetoothIconState connected -");
     	}
@@ -283,6 +318,7 @@ public class MainActivity extends SherlockActivity implements INumberReceiver {
     
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
+    	Intent serverIntent = null;
         switch (item.getItemId()) {
             case R.id.bluetooth_connection_button:
             	m_BluetoothMenuItem = item;
@@ -338,6 +374,22 @@ public class MainActivity extends SherlockActivity implements INumberReceiver {
             	m_SetPointsPlayerRight.SetNumber(temp);
             	
             	return true;
+
+            case R.id.secure_connect_scan:
+                // Launch the DeviceListActivity to see devices and do scan
+                serverIntent = new Intent(this, DeviceListActivity.class);
+                startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE_SECURE);
+                return true;
+            case R.id.insecure_connect_scan:
+                // Launch the DeviceListActivity to see devices and do scan
+                serverIntent = new Intent(this, DeviceListActivity.class);
+                startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE_INSECURE);
+                return true;
+            case R.id.discoverable:
+                // Ensure this device is discoverable by others
+                ensureDiscoverable();
+                return true;
+            	
             	
             default:
                 return super.onOptionsItemSelected(item);
@@ -346,6 +398,19 @@ public class MainActivity extends SherlockActivity implements INumberReceiver {
     
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         switch (requestCode) {
+        case REQUEST_CONNECT_DEVICE_SECURE:
+            // When DeviceListActivity returns with a device to connect
+            if (resultCode == Activity.RESULT_OK) {
+                connectDevice(data, true);
+            }
+            break;
+            
+        case REQUEST_CONNECT_DEVICE_INSECURE:
+            // When DeviceListActivity returns with a device to connect
+            if (resultCode == Activity.RESULT_OK) {
+                connectDevice(data, false);
+            }
+            break;        
         case REQUEST_ENABLE_BT:
         	
             // When the request to enable Bluetooth returns
@@ -360,6 +425,22 @@ public class MainActivity extends SherlockActivity implements INumberReceiver {
             }
         }
     }    
+    
+    private void connectDevice(Intent data, boolean secure) {
+    	if(D) 
+		{
+			Log.d(TAG, "--- connectDevice called ---");
+		}
+        // Get the device MAC address
+        String address = data.getExtras()
+            .getString(DeviceListActivity.EXTRA_DEVICE_ADDRESS);
+        // Get the BLuetoothDevice object
+        BluetoothDevice device = m_BluetoothManager.getRemoteDevice(address);
+        // Attempt to connect to the device
+        Toast.makeText(this, "Attempt to connect to the device", Toast.LENGTH_SHORT).show();
+        m_BluetoothService.connect(device, secure);
+    }
+    
 
 	@Override
 	public void SetNumber(int newNumber, int id) {

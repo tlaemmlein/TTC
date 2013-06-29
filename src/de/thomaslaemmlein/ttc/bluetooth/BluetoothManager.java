@@ -1,6 +1,7 @@
 package de.thomaslaemmlein.ttc.bluetooth;
 
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 
 public class BluetoothManager {
 
@@ -32,5 +33,14 @@ public class BluetoothManager {
 
     	return m_BluetoothAdapter.isEnabled();
     }
+    
+    public int getScanMode()
+    {
+    	return m_BluetoothAdapter.getScanMode();
+    }
 
+    public BluetoothDevice getRemoteDevice(String address)
+    {
+    	return m_BluetoothAdapter.getRemoteDevice(address);
+    }
 }
