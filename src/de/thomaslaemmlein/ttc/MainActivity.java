@@ -5,6 +5,7 @@ import com.actionbarsherlock.view.Menu;
 import com.actionbarsherlock.view.MenuItem;
 
 import de.thomaslaemmlein.ttc.bluetooth.BluetoothManager;
+import de.thomaslaemmlein.ttc.bluetooth.BluetoothService;
 
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
@@ -12,16 +13,24 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.text.Html;
+import android.util.Log;
 import android.view.Display;
 import android.widget.TextView;
 import android.widget.Toast;
 
 public class MainActivity extends SherlockActivity implements INumberReceiver {
 	
+    // Debugging
+    private static final String TAG = "MainActivity";
+    private static final boolean D = true;
+
 	private boolean m_bBluetoothConnectionStateIcon;
 	private BluetoothManager m_BluetoothManager;
     private MenuItem m_BluetoothMenuItem;
+    private BluetoothService m_BluetoothService;
 	
     // Intent request codes
     private static final int REQUEST_CONNECT_DEVICE_SECURE = 1;
@@ -48,16 +57,25 @@ public class MainActivity extends SherlockActivity implements INumberReceiver {
 
     private TextView m_RightPlayerTextView;
     
+    private TextView m_ConnectionText;
+    
+    // Name of the connected device
+    private String m_ConnectedDeviceName = null;
+    
+    private Menu m_OptionMenu;
+    
+   
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		if(D) Log.e(TAG, "- ON CREATE -");
 		setContentView(R.layout.activity_main);
 		
 		getSupportActionBar().setBackgroundDrawable(new ColorDrawable(Color.parseColor("#262626")));
 		getSupportActionBar().setTitle(Html.fromHtml("<font color='#ffffff'>TTC</font>"));
 		
-		float textSizeScoreScalefactor = 1.0f/4.65f; //Text size 200sp Looks good for 800 pixel width. Hence -> 200/800 = 1/4
+		float textSizeScoreScalefactor = 1.0f/5.0f; //Text size 200sp Looks good for 800 pixel width. Hence -> 200/800 = 1/4
 		float textSizeSetPointsScalefactor = textSizeScoreScalefactor/2.0f;
 		float textSizePlayerNameScalefactor = textSizeScoreScalefactor/10.5f;
 		Display display = getWindowManager().getDefaultDisplay(); 
@@ -96,14 +114,145 @@ public class MainActivity extends SherlockActivity implements INumberReceiver {
 		m_RightPlayerTextView.setText(R.string.playerB);
 		m_RightPlayerTextView.setTextSize(textSizePlayerName);
 		
+		m_ConnectionText = (TextView) findViewById(R.id.Connection_textView);
+		
 		m_BluetoothManager = new BluetoothManager();
 	
 	}
 	
+	@Override
+	protected void onStart() {
+		super.onStart();
+		if(D) Log.e(TAG, "- ON START -");
+		if ( m_bBluetoothConnectionStateIcon == true )
+		{
+	        // If BT is not on, request that it be enabled.
+	        // onActivityResult will be called
+	        if (!m_BluetoothManager.isBluetoothEnabled()) 
+	        {
+	            Intent enableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+	            startActivityForResult(enableIntent, REQUEST_ENABLE_BT);
+	        
+	        }
+	        // Otherwise, setup the table tennis session
+	        else
+	        {
+	            if (m_BluetoothService == null) 
+	            {
+	            		setupService();
+	            }
+	        }
+		}
+	}
+	
     @Override
+    public synchronized void onResume() {
+        super.onResume();
+        if (D) Log.e(TAG, "+ ON RESUME +");
+
+        // Performing this check in onResume() covers the case in which BT was
+        // not enabled during onStart(), so we were paused to enable it...
+        // onResume() will be called when ACTION_REQUEST_ENABLE activity returns.
+        if (m_BluetoothService != null) {
+            // Only if the state is STATE_NONE, do we know that we haven't started already
+            if (m_BluetoothService.getState() == BluetoothService.STATE_NONE) {
+              // Start the Bluetooth chat services
+            	m_BluetoothService.start();
+            }
+        }
+    }	
+	
+	
+	private void setupService()
+	{
+        // Initialize the BluetoothService to perform bluetooth connections
+		m_BluetoothService = new BluetoothService(this, mHandler);
+	}
+	
+    @Override
+    public synchronized void onPause() {
+        super.onPause();
+        if(D) Log.e(TAG, "- ON PAUSE -");
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        if(D) Log.e(TAG, "-- ON STOP --");
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        // Stop the Bluetooth services
+        if (m_BluetoothService != null) m_BluetoothService.stop();
+        if(D) Log.e(TAG, "--- ON DESTROY ---");
+    }	
+	
+    // The Handler that gets information back from the BluetoothService
+    private final Handler mHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+            case BluetoothService.MESSAGE_STATE_CHANGE:
+                if(D) Log.i(TAG, "MESSAGE_STATE_CHANGE: " + msg.arg1);
+                switch (msg.arg1) {
+                case BluetoothService.STATE_CONNECTED:
+                	m_ConnectionText.setText(R.string.title_connected_to);
+                    if ( m_ConnectedDeviceName != null )
+                    {
+                    	m_ConnectionText.append(m_ConnectedDeviceName);
+                    }
+                    break;
+                case BluetoothService.STATE_CONNECTING:
+                	m_ConnectionText.setText(R.string.title_connecting);
+                    break;
+                case BluetoothService.STATE_LISTEN:
+                case BluetoothService.STATE_NONE:
+                	m_ConnectionText.setText(R.string.title_not_connected);
+                    break;
+                }
+                break;
+            case BluetoothService.MESSAGE_WRITE:
+                byte[] writeBuf = (byte[]) msg.obj;
+                // construct a string from the buffer
+                String writeMessage = new String(writeBuf);
+                break;
+            case BluetoothService.MESSAGE_READ:
+                byte[] readBuf = (byte[]) msg.obj;
+                // construct a string from the valid bytes in the buffer
+                String readMessage = new String(readBuf, 0, msg.arg1);
+                
+            	//m_CurrentNumberEditText.setText(readMessage);
+            	
+            	//int number = Integer.parseInt(readMessage);
+            	
+            	//m_CounterView.SetNumber(number);
+                
+                break;
+            case BluetoothService.MESSAGE_DEVICE_NAME:
+                // save the connected device's name
+            	m_ConnectedDeviceName = msg.getData().getString(BluetoothService.DEVICE_NAME);
+                Toast.makeText(getApplicationContext(), "Connected to "
+                               + m_ConnectedDeviceName, Toast.LENGTH_SHORT).show();
+                break;
+            case BluetoothService.MESSAGE_TOAST:
+                Toast.makeText(getApplicationContext(), msg.getData().getString(BluetoothService.TOAST),
+                               Toast.LENGTH_SHORT).show();
+                break;
+            }
+        }
+    }; 	
+
+	@Override
     public boolean onCreateOptionsMenu(Menu menu) {
+		if(D) Log.e(TAG, "- ON CREATE OPTION MENU -");
     	com.actionbarsherlock.view.MenuInflater inflater = getSupportMenuInflater();
- 	   	inflater.inflate(R.menu.main, (com.actionbarsherlock.view.Menu) menu);    	
+ 	   	inflater.inflate(R.menu.main, (com.actionbarsherlock.view.Menu) menu);   
+ 	   	
+ 	   //menu.getItem(R.id.secure_connect_scan).setVisible(false);
+ 	   	
+ 	   m_OptionMenu = menu;
  	
  	   	m_bBluetoothConnectionStateIcon = false;
  	   	
@@ -112,20 +261,25 @@ public class MainActivity extends SherlockActivity implements INumberReceiver {
  	   	return super.onCreateOptionsMenu(menu);
 	}
     
-    private void setBluetoothIconState(boolean connected)
+    private void setBluetoothIconState(boolean IsConnected)
     {
-    	if ( connected)
+    	if ( IsConnected)
     	{
     		m_BluetoothMenuItem.setIcon(R.drawable.bluetooth_connected);
-    		m_bBluetoothConnectionStateIcon = true;
+    		
+    		if(D) Log.d(TAG, "- setBluetoothIconState connected -");
     	}
     	else
     	{
     		m_BluetoothMenuItem.setIcon(R.drawable.bluetooth_not_connected);
-    		m_bBluetoothConnectionStateIcon = false;
     	}
+    	m_bBluetoothConnectionStateIcon = IsConnected;
+		m_OptionMenu.getItem(0).setVisible(IsConnected);
+		m_OptionMenu.getItem(1).setVisible(IsConnected);
+		m_OptionMenu.getItem(2).setVisible(IsConnected);
     	
     }
+    
     
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
@@ -196,12 +350,12 @@ public class MainActivity extends SherlockActivity implements INumberReceiver {
         	
             // When the request to enable Bluetooth returns
             if (resultCode == Activity.RESULT_OK) {
-                // Bluetooth is now enabled, so set up a chat session
-                Toast.makeText(this, "Bluetooth is now enabled, so set up the table tennis session", Toast.LENGTH_SHORT).show();
+                // Bluetooth is now enabled, so set up a table tennis session
+                Toast.makeText(this, "Bluetooth is now enabled, so set up the table tennis session", Toast.LENGTH_LONG).show();
                 setBluetoothIconState(true);
             } else {
                 // User did not enable Bluetooth or an error occured
-                Toast.makeText(this, "User did not enable Bluetooth or an error occured", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "User did not enable Bluetooth or an error occured", Toast.LENGTH_LONG).show();
                 setBluetoothIconState(false);
             }
         }
@@ -230,7 +384,10 @@ public class MainActivity extends SherlockActivity implements INumberReceiver {
 			break;
 		}
 		
-		Toast.makeText(this, "SetNumber called", Toast.LENGTH_LONG).show();
+		if(D) 
+		{
+			Log.d(TAG, "--- SetNumber called ---");
+		}
 		
 	}    
 

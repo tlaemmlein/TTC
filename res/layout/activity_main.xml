@@ -66,4 +66,13 @@
         android:text="@string/playerB"
         android:textColor="@color/opaque_white" />
 
+    <TextView
+        android:id="@+id/Connection_textView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/LeftPlayer_textView"
+        android:layout_below="@+id/LeftPlayer_textView"
+        android:text="Connection State"
+        android:textColor="@color/opaque_white" />
+
 </RelativeLayout>
