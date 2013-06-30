@@ -29,7 +29,7 @@ public class MainActivity extends SherlockActivity implements INumberReceiver {
     private static final String TAG = "MainActivity";
     private static final boolean D = true;
 
-	private boolean m_bBluetoothConnectionStateIcon;
+	private boolean m_bIsUsingBluetooth;
 	private BluetoothManager m_BluetoothManager;
     private MenuItem m_BluetoothMenuItem;
     private BluetoothService m_BluetoothService;
@@ -117,58 +117,22 @@ public class MainActivity extends SherlockActivity implements INumberReceiver {
 		m_RightPlayerTextView.setTextSize(textSizePlayerName);
 		
 		m_ConnectionText = (TextView) findViewById(R.id.Connection_textView);
-		
-		m_BluetoothManager = new BluetoothManager();
-	
 	}
 	
 	@Override
 	protected void onStart() {
 		super.onStart();
 		if(D) Log.e(TAG, "- ON START -");
-        // If BT is not on, request that it be enabled.
-        // onActivityResult will be called
-        if (!m_BluetoothManager.isBluetoothEnabled()) 
-        {
-            Intent enableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            startActivityForResult(enableIntent, REQUEST_ENABLE_BT);
-        
-        }
-        // Otherwise, setup the table tennis session
-        else
-        {
-            if (m_BluetoothService == null) 
-            {
-            		setupService();
-            }
-        }
+		doUseBluetooth(m_bIsUsingBluetooth);
 	}
 	
     @Override
     public synchronized void onResume() {
         super.onResume();
         if (D) Log.e(TAG, "+ ON RESUME +");
-
-        // Performing this check in onResume() covers the case in which BT was
-        // not enabled during onStart(), so we were paused to enable it...
-        // onResume() will be called when ACTION_REQUEST_ENABLE activity returns.
-        if (m_BluetoothService != null) {
-            // Only if the state is STATE_NONE, do we know that we haven't started already
-            if (m_BluetoothService.getState() == BluetoothService.STATE_NONE) {
-              // Start the Bluetooth chat services
-            	m_BluetoothService.start();
-            }
-        }
+		doUseBluetooth(m_bIsUsingBluetooth);
     }	
 	
-	
-	private void setupService()
-	{
-		if(D) Log.d(TAG, "- setupService -");
-        // Initialize the BluetoothService to perform bluetooth connections
-		m_BluetoothService = new BluetoothService(this, mHandler);
-		m_BluetoothService.start();
-	}
 	
     @Override
     public synchronized void onPause() {
@@ -185,9 +149,8 @@ public class MainActivity extends SherlockActivity implements INumberReceiver {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        // Stop the Bluetooth services
-        if (m_BluetoothService != null) m_BluetoothService.stop();
         if(D) Log.e(TAG, "--- ON DESTROY ---");
+		doUseBluetooth(false);
     }	
     
     private void ensureDiscoverable() {
@@ -284,34 +247,75 @@ public class MainActivity extends SherlockActivity implements INumberReceiver {
  	   	
  	   	m_OptionMenu = menu;
  	
- 	   	m_bBluetoothConnectionStateIcon = false;
+ 	   	m_bIsUsingBluetooth = false;
  	   	
  	    m_ScoreView = ScoreView.RefereeView;
 
  	   	return super.onCreateOptionsMenu(menu);
 	}
     
-    private void setBluetoothIconState(boolean IsConnected)
+    private void doUseBluetooth(boolean bUseBluetooth)
     {
-    	if ( IsConnected)
+    	if ( bUseBluetooth)
     	{
-    		m_BluetoothMenuItem.setIcon(R.drawable.bluetooth_connected);
+    		if ( null == m_BluetoothManager )
+    		{
+    			m_BluetoothManager = new BluetoothManager();
+    		}
     		
-            if ( null == m_BluetoothService )
-            {
-            	setupService();
-            }    		
+    		if ( !m_BluetoothManager.getAdapter() )
+    		{
+                Toast.makeText(this, "Bluetooth is not available", Toast.LENGTH_LONG).show();
+    		}
+    		else
+    		{
+    			if ( m_BluetoothManager.isBluetoothEnabled() )
+    			{
+    	    		if ( null == m_BluetoothService )
+    	            {
+    	    			m_BluetoothService = new BluetoothService(this, mHandler);
+    	            }   
+    	    		
+    	    		if (m_BluetoothService.getState() == BluetoothService.STATE_NONE) 
+    	    		{
+    	    			m_BluetoothService.start();
+    	    		}
+    			}
+    			else
+    			{
+    	            Intent enableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+    	            startActivityForResult(enableIntent, REQUEST_ENABLE_BT);
+    			}
+    		}
     		
-    		if(D) Log.d(TAG, "- setBluetoothIconState connected -");
+    		if ( null != m_BluetoothMenuItem )
+			{
+    			m_BluetoothMenuItem.setIcon(R.drawable.bluetooth_connected);
+			}
+    		
+    		if(D) Log.d(TAG, "- Using Bluetooth -");
     	}
     	else
     	{
-    		m_BluetoothMenuItem.setIcon(R.drawable.bluetooth_not_connected);
+    		if ( null != m_BluetoothService )
+            {
+    			m_BluetoothService.stop();
+            }
+    		
+    		if ( null != m_BluetoothMenuItem )
+			{
+    			m_BluetoothMenuItem.setIcon(R.drawable.bluetooth_not_connected);
+			}
+
+    		if(D) Log.d(TAG, "- Bluetooth Service stopped -");
     	}
-    	m_bBluetoothConnectionStateIcon = IsConnected;
-		m_OptionMenu.getItem(0).setVisible(IsConnected);
-		m_OptionMenu.getItem(1).setVisible(IsConnected);
-		m_OptionMenu.getItem(2).setVisible(IsConnected);
+    	m_bIsUsingBluetooth = bUseBluetooth;
+    	if ( null != m_OptionMenu )
+    	{
+    		m_OptionMenu.getItem(0).setVisible(bUseBluetooth);
+    		m_OptionMenu.getItem(1).setVisible(bUseBluetooth);
+    		m_OptionMenu.getItem(2).setVisible(bUseBluetooth);
+    	}
     	
     }
     
@@ -322,30 +326,7 @@ public class MainActivity extends SherlockActivity implements INumberReceiver {
         switch (item.getItemId()) {
             case R.id.bluetooth_connection_button:
             	m_BluetoothMenuItem = item;
-            	
-            	if ( m_bBluetoothConnectionStateIcon )
-            	{
-            		setBluetoothIconState(false);
-            	}
-            	else
-            	{
-            		if ( !m_BluetoothManager.getAdapter() )
-            		{
-                        Toast.makeText(this, "Bluetooth is not available", Toast.LENGTH_LONG).show();
-            		}
-            		else
-            		{
-            			if ( m_BluetoothManager.isBluetoothEnabled() )
-            			{
-            				setBluetoothIconState(true);
-            			}
-            			else
-            			{
-            	            Intent enableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            	            startActivityForResult(enableIntent, REQUEST_ENABLE_BT);
-            			}
-            		}
-            	}
+           		doUseBluetooth( !m_bIsUsingBluetooth );
             	return true;
             	
             case R.id.score_view:
@@ -417,11 +398,11 @@ public class MainActivity extends SherlockActivity implements INumberReceiver {
             if (resultCode == Activity.RESULT_OK) {
                 // Bluetooth is now enabled, so set up a table tennis session
                 Toast.makeText(this, "Bluetooth is now enabled, so set up the table tennis session", Toast.LENGTH_LONG).show();
-                setBluetoothIconState(true);
+                doUseBluetooth(true);
             } else {
                 // User did not enable Bluetooth or an error occured
                 Toast.makeText(this, "User did not enable Bluetooth or an error occured", Toast.LENGTH_LONG).show();
-                setBluetoothIconState(false);
+                doUseBluetooth(false);
             }
         }
     }    
