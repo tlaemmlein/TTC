@@ -59,6 +59,11 @@ public class MainActivity extends SherlockActivity implements INumberReceiver {
 
     private TextView m_RightPlayerTextView;
     
+    private static final int m_ScorePlayerA = 1;
+    private static final int m_SetPointsPlayerA = 2;
+    private static final int m_ScorePlayerB = 3;
+    private static final int m_SetPointsPlayerB = 4;
+    
     private TextView m_ConnectionText;
     
     // Name of the connected device
@@ -89,11 +94,13 @@ public class MainActivity extends SherlockActivity implements INumberReceiver {
 		m_ScorePlayerLeft = (CounterView) findViewById(R.id.scorePlayerLeft);
 		m_ScorePlayerLeft.SetNumberReceiver(this);
 		m_ScorePlayerLeft.setIntegerDigitsNumber(2);
+		m_ScorePlayerLeft.setID(m_ScorePlayerLeftID);
 		m_ScorePlayerLeft.SetNumber(0);
 		m_ScorePlayerLeft.setTextSize(textSizeScoreView);
 		
 		m_SetPointsPlayerLeft = (CounterView) findViewById(R.id.setPointsPlayerLeft);
 		m_SetPointsPlayerLeft.SetNumberReceiver(this);
+		m_SetPointsPlayerLeft.setID(m_SetPointsPlayerLeftID);
 		m_SetPointsPlayerLeft.SetNumber(0);
 		m_SetPointsPlayerLeft.setTextSize(textSizeSetPointsView);
 		
@@ -103,12 +110,14 @@ public class MainActivity extends SherlockActivity implements INumberReceiver {
 
 		m_SetPointsPlayerRight = (CounterView) findViewById(R.id.setPointsPlayerRight);
 		m_SetPointsPlayerRight.SetNumberReceiver(this);
+		m_SetPointsPlayerRight.setID(m_SetPointsPlayerRightID);
 		m_SetPointsPlayerRight.SetNumber(0);
 		m_SetPointsPlayerRight.setTextSize(textSizeSetPointsView);
 
 		m_ScorePlayerRight = (CounterView) findViewById(R.id.scorePlayerRight);
 		m_ScorePlayerRight.SetNumberReceiver(this);
 		m_ScorePlayerRight.setIntegerDigitsNumber(2);
+		m_ScorePlayerRight.setID(m_ScorePlayerRightID);
 		m_ScorePlayerRight.SetNumber(0);
 		m_ScorePlayerRight.setTextSize(textSizeScoreView);
 		
@@ -162,25 +171,6 @@ public class MainActivity extends SherlockActivity implements INumberReceiver {
         }
     }
     
-    /**
-     * Sends a message.
-     * @param message  A string of text to send.
-     */
-    private void sendMessage(String message) {
-        // Check that we're actually connected before trying anything
-        if (m_BluetoothService.getState() != BluetoothService.STATE_CONNECTED) {
-            Toast.makeText(this, R.string.not_connected, Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        // Check that there's actually something to send
-        if (message.length() > 0) {
-            // Get the message bytes and tell the BluetoothChatService to write
-            byte[] send = message.getBytes();
-            m_BluetoothService.write(send);
-        }
-    }   
-    
 	
     // The Handler that gets information back from the BluetoothService
     private final Handler mHandler = new Handler() {
@@ -218,11 +208,58 @@ public class MainActivity extends SherlockActivity implements INumberReceiver {
                 // construct a string from the valid bytes in the buffer
                 String readMessage = new String(readBuf, 0, msg.arg1);
                 
-            	//m_CurrentNumberEditText.setText(readMessage);
-            	
-            	//int number = Integer.parseInt(readMessage);
-            	
-            	//m_CounterView.SetNumber(number);
+                if ( D ) Log.e(TAG, "readMessage= " + readMessage);
+                
+                String[] splittedMessage = readMessage.split(":");
+                
+                if (splittedMessage.length != 2)
+                {
+                	return;
+                }
+                
+                int sPlayersId = Integer.parseInt(splittedMessage[0]);
+                
+                int newNumber = Integer.parseInt(splittedMessage[1]);
+                
+                if ( m_ScoreView == ScoreView.RefereeView )
+                {
+                	switch (sPlayersId) {
+					case m_ScorePlayerA:
+						m_ScorePlayerLeft.SetNumber(newNumber);
+						break;
+					case m_SetPointsPlayerA:
+						m_SetPointsPlayerLeft.SetNumber(newNumber);
+						break;
+					case m_SetPointsPlayerB:
+						m_SetPointsPlayerRight.SetNumber(newNumber);
+						break;
+					case m_ScorePlayerB:
+						m_ScorePlayerRight.SetNumber(newNumber);
+						break;
+					default:
+						break;
+					}
+                }
+                else
+                {
+                	switch (sPlayersId) {
+					case m_ScorePlayerA:
+						m_ScorePlayerRight.SetNumber(newNumber);
+						break;
+					case m_SetPointsPlayerA:
+						m_SetPointsPlayerRight.SetNumber(newNumber);
+						break;
+					case m_SetPointsPlayerB:
+						m_SetPointsPlayerLeft.SetNumber(newNumber);
+						break;
+					case m_ScorePlayerB:
+						m_ScorePlayerLeft.SetNumber(newNumber);
+						break;
+					default:
+						break;
+					}
+                }
+                
                 
                 break;
             case BluetoothService.MESSAGE_DEVICE_NAME:
@@ -422,34 +459,91 @@ public class MainActivity extends SherlockActivity implements INumberReceiver {
         m_BluetoothService.connect(device, secure);
     }
     
+    /**
+     * Sends a message.
+     * @param message  A string of text to send.
+     */
+    private void sendMessage(String message) {
+        // Check that we're actually connected before trying anything
+        if (m_BluetoothService.getState() != BluetoothService.STATE_CONNECTED) {
+            Toast.makeText(this, R.string.not_connected, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Check that there's actually something to send
+        if (message.length() > 0) {
+        	if ( D ) Log.e(TAG, "- sendMessage -" + message);
+            // Get the message bytes and tell the BluetoothChatService to write
+            byte[] send = message.getBytes();
+            m_BluetoothService.write(send);
+        }
+    }   
+    
 
 	@Override
 	public void SetNumber(int newNumber, int id) {
+		if(D) 
+		{
+			Log.d(TAG, "--- SetNumber called with newNumber(" + String.valueOf(newNumber) + "), id(" + String.valueOf(id) +")");
+		}
+		
 		switch (id) {
 		case m_ScorePlayerLeftID:
+			
+			if ( m_ScoreView == ScoreView.RefereeView )
+			{
+				sendMessage( String.valueOf(m_ScorePlayerA) + ":" + String.valueOf(newNumber));
+			}
+			else
+			{
+				sendMessage( String.valueOf(m_ScorePlayerB) + ":" + String.valueOf(newNumber));
+			}
 			
 			break;
 
 		case m_SetPointsPlayerLeftID:
 			
+			if ( m_ScoreView == ScoreView.RefereeView )
+			{
+				sendMessage( String.valueOf(m_SetPointsPlayerA) + ":" + String.valueOf(newNumber));
+			}
+			else
+			{
+				sendMessage( String.valueOf(m_SetPointsPlayerB) + ":" + String.valueOf(newNumber));
+			}
+
 			break;
 
 		case m_SetPointsPlayerRightID:
+
+			if ( m_ScoreView == ScoreView.RefereeView )
+			{
+				sendMessage( String.valueOf(m_SetPointsPlayerB) + ":" + String.valueOf(newNumber));
+			}
+			else
+			{
+				sendMessage( String.valueOf(m_SetPointsPlayerA) + ":" + String.valueOf(newNumber));
+			}
 			
 			break;
 
 		case m_ScorePlayerRightID:
+			
+			if ( m_ScoreView == ScoreView.RefereeView )
+			{
+				sendMessage( String.valueOf(m_ScorePlayerB) + ":" + String.valueOf(newNumber));
+			}
+			else
+			{
+				sendMessage( String.valueOf(m_ScorePlayerA) + ":" + String.valueOf(newNumber));
+			}
 			
 			break;
 
 		default:
 			break;
 		}
-		
-		if(D) 
-		{
-			Log.d(TAG, "--- SetNumber called ---");
-		}
+	
 		
 	}    
 
